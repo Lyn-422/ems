@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary mb-3">
+            <div class="card-body">
+                <h5 class="card-title">实时总功率 (kW)</h5>
+                <p class="card-text display-6">{{ power }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success mb-3">
+            <div class="card-body">
+                <h5 class="card-title">今日光伏发电 (kWh)</h5>
+                <p class="card-text display-6">{{ pv }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-danger mb-3">
+            <div class="card-body">
+                <h5 class="card-title">严重告警 (未处理)</h5>
+                <p class="card-text display-6">{{ alarms.high }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-light mb-3">
+            <div class="card-body">
+                <h5 class="card-title text-muted">待处理工单</h5>
+                <p class="card-text display-6 text-dark">{{ alarms.total }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">配电网负荷趋势 (最近10次采集)</div>
+            <div class="card-body">
+                <div id="mainChart" style="height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">能耗构成</div>
+            <div class="card-body">
+                <div id="pieChart" style="height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

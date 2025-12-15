@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>配电房运行监测</h3>
+<table class="table table-hover bg-white mt-3 shadow-sm rounded">
+    <thead>
+        <tr>
+            <th>配电房编号</th>
+            <th>名称</th>
+            <th>电压等级</th>
+            <th>负责人</th>
+            <th>联系电话</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for room in rooms %}
+        <tr>
+            <td>{{ room.room_code }}</td>
+            <td>{{ room.room_name }}</td>
+            <td><span class="badge bg-info">{{ room.voltage_level }}</span></td>
+            <td>{{ room.manager.real_name if room.manager else '未分配' }}</td>
+            <td>{{ room.contact_phone }}</td>
+            <td>
+                <a href="{{ url_for('monitor.circuit_detail', power_room_id=room.power_room_id) }}" class="btn btn-sm btn-primary">查看回路</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

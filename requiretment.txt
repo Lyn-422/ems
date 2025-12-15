@@ -1,0 +1,12 @@
+# Web 框架核心
+Flask==3.0.0
+
+# 数据库 ORM 及驱动
+Flask-SQLAlchemy==3.1.1
+PyMySQL==1.1.0
+
+# 用户登录会话管理 (用于实现 RBAC 权限控制)
+Flask-Login==0.6.3
+
+# [cite_start]密码哈希加密工具 (用于 MD5/SHA-256 加密 [cite: 130])
+Werkzeug==3.0.1

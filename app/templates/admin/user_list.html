@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>用户权限管理</h3>
+
+<div class="card mb-4 mt-3 shadow-sm">
+    <div class="card-header">新增系统用户</div>
+    <div class="card-body">
+        <form action="{{ url_for('admin.add_user') }}" method="POST" class="row g-3">
+            <div class="col-auto">
+                <input type="text" name="username" class="form-control" placeholder="账号(英文)" required>
+            </div>
+            <div class="col-auto">
+                <input type="text" name="real_name" class="form-control" placeholder="真实姓名" required>
+            </div>
+            <div class="col-auto">
+                <input type="password" name="password" class="form-control" placeholder="初始密码" required>
+            </div>
+            <div class="col-auto">
+                <select name="role_id" class="form-select" required>
+                    <option value="" disabled selected>选择初始角色</option>
+                    {% for role in roles %}
+                    <option value="{{ role.role_id }}">{{ role.role_name }} ({{ role.description }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i> 添加</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<table class="table table-striped bg-white rounded">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>账号</th>
+            <th>真实姓名</th>
+            <th>拥有角色</th>
+            <th>创建时间</th>
+            <th>状态</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.user_id }}</td>
+            <td>{{ user.username }}</td>
+            <td>{{ user.real_name }}</td>
+            <td>
+                {% for role in user.roles %}
+                <span class="badge bg-secondary">{{ role.role_name }}</span>
+                {% endfor %}
+            </td>
+            <td>{{ user.created_at }}</td>
+            <td>
+                {% if user.status == 1 %}
+                <span class="badge bg-success">正常</span>
+                {% else %}
+                <span class="badge bg-danger">禁用</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

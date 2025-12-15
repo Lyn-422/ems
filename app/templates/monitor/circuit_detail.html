@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+    <h3>{{ room.room_name }} - 回路监测详情</h3>
+    <a href="{{ url_for('monitor.distribution_list') }}" class="btn btn-secondary btn-sm">返回列表</a>
+</div>
+
+<table class="table table-striped mt-3 bg-white">
+    <thead>
+        <tr>
+            <th>采集时间</th>
+            <th>回路编号</th>
+            <th>电压 (kV)</th>
+            <th>电流 (A)</th>
+            <th>有功功率 (kW)</th>
+            <th>开关状态</th>
+            <th>异常状态</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for c in circuits %}
+        <tr>
+            <td>{{ c.collect_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td>{{ c.circuit_code }}</td>
+            <td>{{ c.voltage_kv }}</td>
+            <td>{{ c.current_a }}</td>
+            <td class="fw-bold">{{ c.active_power_kw }}</td>
+            <td>
+                {% if c.switch_status == '合闸' %}
+                    <span class="text-success">● 合闸</span>
+                {% else %}
+                    <span class="text-danger">○ 分闸</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if c.is_abnormal %}
+                    <span class="badge bg-danger">异常</span>
+                {% else %}
+                    <span class="badge bg-success">正常</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

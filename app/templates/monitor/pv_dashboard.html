@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>分布式光伏设备管理</h3>
+<div class="row mt-3">
+    {% for dev in devices %}
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>{{ dev.device_code }}</span>
+                <span class="badge bg-{{ 'success' if dev.run_status=='正常' else 'danger' }}">
+                    {{ dev.run_status }}
+                </span>
+            </div>
+            <div class="card-body">
+                <p><strong>所属并网点:</strong> {{ dev.grid_point.grid_code }}</p>
+                <p><strong>所属厂区:</strong> {{ dev.grid_point.plant.plant_name }}</p>
+                <p><strong>设备类型:</strong> {{ dev.device_type }}</p>
+                <p><strong>装机容量:</strong> {{ dev.capacity_kwp }} kWp</p>
+                <div class="alert alert-light border mt-2">
+                    <small class="text-muted">安装位置: {{ dev.install_pos }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

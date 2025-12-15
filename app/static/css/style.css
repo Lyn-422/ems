@@ -1,0 +1,103 @@
+/* app/static/css/style.css */
+
+/* ========== 全局基础 ========== */
+body {
+    background-color: #f4f6f9;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #333;
+}
+
+/* ========== 侧边栏 (Sidebar) ========== */
+.sidebar {
+    min-height: 100vh;
+    background-color: #2c3e50;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    z-index: 100;
+}
+
+.sidebar h4 {
+    color: #ecf0f1;
+    font-weight: 600;
+    font-size: 1.2rem;
+    letter-spacing: 1px;
+}
+
+.sidebar a {
+    color: #bdc3c7;
+    text-decoration: none;
+    display: block;
+    padding: 12px 20px;
+    border-left: 4px solid transparent;
+    transition: all 0.2s ease-in-out;
+}
+
+.sidebar a:hover {
+    background-color: #34495e;
+    color: #fff;
+    border-left-color: #3498db;
+}
+
+.sidebar a.active {
+    background-color: #34495e;
+    color: #fff;
+    border-left-color: #1abc9c; /* 激活高亮色 */
+    font-weight: 500;
+}
+
+/* 分类标题 */
+.sidebar .text-uppercase {
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    margin-top: 15px;
+    margin-bottom: 5px;
+    color: #7f8c8d;
+}
+
+/* ========== 内容区域 (Content) ========== */
+.content {
+    padding: 24px;
+    overflow-y: auto;
+    height: 100vh;
+}
+
+/* ========== 卡片组件 (Card) ========== */
+.card {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-3px); /* 悬停微动特效 */
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #f0f0f0;
+    font-weight: 600;
+    color: #2c3e50;
+    padding: 15px 20px;
+    border-top-left-radius: 8px !important;
+    border-top-right-radius: 8px !important;
+}
+
+/* ========== 表格优化 ========== */
+.table th {
+    font-weight: 600;
+    color: #555;
+    border-top: none;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* 状态徽章微调 */
+.badge {
+    padding: 6px 10px;
+    font-weight: 500;
+    border-radius: 4px;
+}

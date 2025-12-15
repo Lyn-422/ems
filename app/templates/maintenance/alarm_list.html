@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>告警监控中心</h3>
+<table class="table table-hover mt-3 bg-white shadow-sm">
+    <thead>
+        <tr>
+            <th>发生时间</th>
+            <th>等级</th>
+            <th>设备名称</th>
+            <th>告警内容</th>
+            <th>当前状态</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for alarm in alarms %}
+        <tr>
+            <td>{{ alarm.occur_time.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>
+                {% if alarm.alarm_level == '高' %}
+                    <span class="badge bg-danger">高</span>
+                {% elif alarm.alarm_level == '中' %}
+                    <span class="badge bg-warning">中</span>
+                {% else %}
+                    <span class="badge bg-info">低</span>
+                {% endif %}
+            </td>
+            <td>{{ alarm.equipment.equipment_name }}</td>
+            <td>{{ alarm.alarm_content }}</td>
+            <td>
+                <span class="badge bg-{{ 'secondary' if alarm.handle_status=='未处理' else 'success' }}">
+                    {{ alarm.handle_status }}
+                </span>
+            </td>
+            <td>
+                {% if 'order_manager' in current_user.roles|map(attribute='role_name')|list or 'admin' in current_user.roles|map(attribute='role_name')|list %}
+                    {% if alarm.handle_status == '未处理' %}
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#dispatchModal{{ alarm.alarm_id }}">
+                        派单
+                    </button>
+                    {% endif %}
+                {% endif %}
+
+                <div class="modal fade" id="dispatchModal{{ alarm.alarm_id }}">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form action="{{ url_for('maintenance.dispatch', alarm_id=alarm.alarm_id) }}" method="POST">
+                                <div class="modal-header"><h5 class="modal-title">创建运维工单</h5></div>
+                                <div class="modal-body">
+                                    <p><strong>告警:</strong> {{ alarm.alarm_content }}</p>
+                                    <div class="mb-3">
+                                        <label>指派运维人员</label>
+                                        <select name="maintainer_id" class="form-select" required>
+                                            {% for user in maintainers %}
+                                            <option value="{{ user.user_id }}">{{ user.real_name }} ({{ user.username }})</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label>处理指导意见</label>
+                                        <textarea name="instruction" class="form-control" rows="2"></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="submit" class="btn btn-primary">确认派发</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

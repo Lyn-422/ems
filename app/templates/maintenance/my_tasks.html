@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>我的待办工单</h3>
+<div class="row mt-3">
+    {% for task in tasks %}
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between">
+                <span>工单ID: #{{ task.work_order_id }}</span>
+                <span class="badge bg-secondary">{{ task.review_status }}</span>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">{{ task.alarm.equipment.equipment_name }} - {{ task.alarm.alarm_content }}</h5>
+                <p class="card-text text-muted mb-1">派单时间: {{ task.dispatch_time }}</p>
+                {% if task.result_desc %}
+                <p class="card-text bg-light p-2"><strong>指导意见:</strong> {{ task.result_desc }}</p>
+                {% endif %}
+
+                {% if not task.finish_time %}
+                <hr>
+                <form action="{{ url_for('maintenance.close_task', work_order_id=task.work_order_id) }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label>处理结果描述</label>
+                        <textarea name="result_desc" class="form-control" rows="2" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label>上传现场照片</label>
+                        <input type="file" name="attachment" class="form-control">
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">提交结案</button>
+                </form>
+                {% else %}
+                <div class="alert alert-success mt-3">
+                    <i class="fas fa-check-circle"></i> 已于 {{ task.finish_time }} 完成处理
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12"><div class="alert alert-info">当前没有分配给您的待处理工单。</div></div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+# app/decorators.py
+from functools import wraps
+from flask import abort, flash, redirect, url_for
+from flask_login import current_user
+
+def role_required(allowed_roles):
+    """
+    RBAC 权限控制装饰器 
+    
+    :param allowed_roles: 允许访问该路由的角色列表 (List[str])
+                          例如: ['admin', 'operator']
+    
+    使用方法:
+        @bp.route('/manage_users')
+        @role_required(['admin'])  # 只有管理员能访问
+        def manage_users():
+            ...
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # 1. 检查用户是否已登录 (利用 Flask-Login 的 current_user)
+            if not current_user.is_authenticated:
+                # 如果未登录，重定向到登录页
+                return redirect(url_for('auth.login'))
+
+            # 2. 检查用户角色是否在白名单中
+            # 任务书中定义了多种角色：能源管理员, 运维人员, 数据分析师, 系统管理员等 
+            if current_user.role not in allowed_roles:
+                # 如果是超级管理员 'admin'，通常拥有所有权限 (可选逻辑)
+                if current_user.role == 'admin':
+                    return f(*args, **kwargs)
+                
+                # 3. 权限不足处理
+                # 返回 403 Forbidden 错误，或者显示闪现消息并跳转回首页
+                flash('您没有权限执行此操作 (需要角色: {})'.format(','.join(allowed_roles)), 'danger')
+                return abort(403) # 直接中断请求，返回 HTTP 403 错误页
+
+            # 4. 验证通过，执行原路由函数
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
