@@ -43,3 +43,8 @@ def logout():
     logout_user()
     flash('您已安全退出', 'info')
     return redirect(url_for('auth.login'))
+
+@bp.route('/test_base')
+def test_base():
+    # 直接渲染 base.html，不走继承逻辑
+    return render_template('base.html')

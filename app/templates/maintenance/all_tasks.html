@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3><i class="fas fa-clipboard-list text-primary me-2"></i>现有工单总览</h3>
+    <div>
+        <span class="badge bg-primary fs-6">工单总数: {{ tasks|length }}</span>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">工单ID</th>
+                        <th>关联设备</th>
+                        <th>告警内容</th>
+                        <th>指派给</th>
+                        <th>派单时间</th>
+                        <th>当前状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                    <tr>
+                        <td class="ps-4 fw-bold text-secondary">#{{ task.work_order_id }}</td>
+                        <td>
+                            <div class="d-flex flex-column">
+                                <span class="fw-bold text-dark">{{ task.alarm.equipment.equipment_name }}</span>
+                                <small class="text-muted" style="font-size: 0.75rem;">
+                                    <i class="fas fa-barcode"></i> {{ task.alarm.equipment.equipment_code }}
+                                </small>
+                            </div>
+                        </td>
+                        <td><span class="text-danger">{{ task.alarm.alarm_content }}</span></td>
+                        <td>
+                            {% if task.maintainer %}
+                                {{ task.maintainer.real_name }}
+                            {% else %}
+                                <span class="badge bg-secondary">未分配</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted small">
+                            {{ task.dispatch_time.strftime('%Y-%m-%d %H:%M') if task.dispatch_time else '-' }}
+                        </td>
+                        <td>
+                            {% if task.review_status == '已完成' %}
+                                <span class="badge bg-success bg-opacity-10 text-success">已完成</span>
+                            {% else %}
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary">待处理</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if task.result_desc or task.instruction_desc %}
+                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#detailModal{{ task.work_order_id }}">
+                                <i class="fas fa-eye me-1"></i>详情
+                            </button>
+                            {% else %}
+                            <button class="btn btn-sm btn-outline-secondary" disabled>无详情</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="text-center py-5">暂无工单</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% for task in tasks %}
+    {% if task.result_desc or task.instruction_desc %}
+    <div class="modal fade" id="detailModal{{ task.work_order_id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title">
+                        <i class="fas fa-tools text-muted me-2"></i>工单详情 #{{ task.work_order_id }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="small text-muted fw-bold">故障描述</label>
+                        <div class="p-2 bg-light border rounded text-danger">
+                            <i class="fas fa-exclamation-triangle me-1"></i> {{ task.alarm.alarm_content }}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="small text-muted fw-bold">响应时间</label>
+                            <p class="mb-0">{{ task.response_time.strftime('%Y-%m-%d %H:%M') if task.response_time else '未记录' }}</p>
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-muted fw-bold">完成时间</label>
+                            <p class="mb-0">{{ task.finish_time.strftime('%Y-%m-%d %H:%M') if task.finish_time else '-' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-muted fw-bold">处理结果反馈</label>
+                        {% if task.review_status == '已完成' and task.result_desc %}
+                            <div class="alert alert-success border-success mb-0">
+                                <i class="fas fa-check-circle me-1"></i> {{ task.result_desc }}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-secondary mb-0">
+                                <i class="fas fa-clock me-1"></i> 待处理，运维人员尚未提交结果。
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% if task.instruction_desc %}
+                    <div class="mb-3">
+                        <label class="small text-muted fw-bold">派单指导意见</label>
+                        <div class="p-2 bg-light border rounded text-secondary">
+                             {{ task.instruction_desc }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if task.attachment_path %}
+                    <div class="mb-3">
+                        <label class="small text-muted fw-bold">现场照片/附件</label>
+                        <div class="card p-2 bg-light border">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3 bg-white p-1 border rounded" style="width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                    <img src="{{ url_for('static', filename='images/' + task.attachment_path) }}"
+                                         alt="无预览"
+                                         class="img-fluid"
+                                         onerror="this.src='https://via.placeholder.com/80x80?text=No+Img'; this.onerror=null;">
+                                </div>
+
+                                <div class="flex-grow-1">
+                                    <div class="text-truncate fw-bold mb-1" style="max-width: 200px;" title="{{ task.attachment_path }}">
+                                        {{ task.attachment_path }}
+                                    </div>
+                                    <a href="{{ url_for('static', filename='images/' + task.attachment_path) }}"
+                                       download="{{ task.attachment_path }}"
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fas fa-download me-1"></i> 点击下载
+                                    </a>
+                                    <a href="{{ url_for('static', filename='images/' + task.attachment_path) }}"
+                                       target="_blank"
+                                       class="btn btn-sm btn-outline-secondary ms-1">
+                                        <i class="fas fa-search-plus"></i> 查看大图
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endfor %}
+
+{% endblock %}

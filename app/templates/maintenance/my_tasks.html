@@ -12,8 +12,14 @@
             <div class="card-body">
                 <h5 class="card-title">{{ task.alarm.equipment.equipment_name }} - {{ task.alarm.alarm_content }}</h5>
                 <p class="card-text text-muted mb-1">派单时间: {{ task.dispatch_time }}</p>
-                {% if task.result_desc %}
-                <p class="card-text bg-light p-2"><strong>指导意见:</strong> {{ task.result_desc }}</p>
+                {% if task.instruction_desc %}
+                <p class="card-text bg-light p-2">
+                    <strong>指导意见:</strong> {{ task.instruction_desc }}
+                </p>
+                {% endif %}
+
+                {% if not task.finish_time %}
+                {% else %}
                 {% endif %}
 
                 {% if not task.finish_time %}

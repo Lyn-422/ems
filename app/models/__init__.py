@@ -5,6 +5,7 @@ from .energy import (
     CircuitData, TransformerData,
     PVGenerationData, PVForecastData,
     EnergyData, PeakValleyEnergy,
-    ScreenConfig, HistoryTrend, RealtimeSummary
+    ScreenConfig, HistoryTrend, RealtimeSummary,
+    SystemConfig
 )
 from .work_order import Alarm, WorkOrder

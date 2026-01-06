@@ -1,27 +1,415 @@
-{% extends "base.html" %}
-{% block content %}
-<h3>分布式光伏设备管理</h3>
-<div class="row mt-3">
-    {% for dev in devices %}
-    <div class="col-md-4 mb-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span>{{ dev.device_code }}</span>
-                <span class="badge bg-{{ 'success' if dev.run_status=='正常' else 'danger' }}">
-                    {{ dev.run_status }}
-                </span>
+    {% extends "base.html" %}
+
+    {% block content %}
+    <div class="container-fluid p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold text-primary"><i class="fas fa-solar-panel me-2"></i>分布式光伏智慧大屏</h2>
+                <div class="text-muted small mt-1">
+                    数据来源: 4G/企业内网 |
+                    <span class="badge bg-light text-secondary border">
+                        <i class="far fa-clock me-1"></i>最后更新: <span id="last-updated-time">--:--:--</span>
+                    </span>
+                </div>
             </div>
-            <div class="card-body">
-                <p><strong>所属并网点:</strong> {{ dev.grid_point.grid_code }}</p>
-                <p><strong>所属厂区:</strong> {{ dev.grid_point.plant.plant_name }}</p>
-                <p><strong>设备类型:</strong> {{ dev.device_type }}</p>
-                <p><strong>装机容量:</strong> {{ dev.capacity_kwp }} kWp</p>
-                <div class="alert alert-light border mt-2">
-                    <small class="text-muted">安装位置: {{ dev.install_pos }}</small>
+
+            <div class="text-end">
+                <button id="btn-refresh" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-sync-alt me-1"></i> 立即刷新
+                </button>
+
+                <span class="badge bg-success fs-6"><i class="fas fa-wifi me-1"></i>系统在线</span>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="card shadow-sm border-start border-primary border-4 h-100">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase fw-bold">当前实时功率</div>
+                        <div class="h2 mb-0 mt-2">
+                            <span id="val-power">--</span>
+                            <small class="text-muted fs-6">kW</small>
+                        </div>
+                        <div class="mt-2 text-success small"><i class="fas fa-arrow-up"></i> 运行平稳</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm border-start border-success border-4 h-100">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase fw-bold">今日累计发电</div>
+                        <div class="h2 mb-0 mt-2">
+                            <span id="val-energy">--</span>
+                            <small class="text-muted fs-6">kWh</small>
+                        </div>
+                        <div class="mt-2 text-muted small">预计今日总量: 3,200 kWh</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm border-start border-warning border-4 h-100">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase fw-bold">当前预测偏差率</div>
+                        <div class="h2 mb-0 mt-2">
+                            <span id="val-deviation" class="text-warning">--</span>
+                            <small class="text-warning fs-6">%</small>
+                        </div>
+                        <div class="mt-2 text-muted small">阈值 < 15% (正常)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm border-start border-info border-4 h-100">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase fw-bold">减排二氧化碳</div>
+                        <div class="h2 mb-0 mt-2">
+                            <span id="val-co2">--</span>
+                            <small class="text-muted fs-6">吨</small>
+                        </div>
+                        <div class="mt-2 text-info small"><i class="fas fa-leaf"></i> 绿色能源</div>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <div class="row mb-4">
+            <div class="col-lg-8">
+                <div class="card shadow-sm h-100">
+<!--                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">-->
+<!--                        <h5 class="mb-0 fw-bold"><i class="fas fa-chart-line text-primary me-2"></i>发电功率预测对比 (24H)</h5>-->
+<!--                        <div>-->
+<!--                            <button id="btn-reset" class="btn btn-sm btn-outline-secondary me-2">-->
+<!--                                <i class="fas fa-undo me-1"></i> 还原视图-->
+<!--                            </button>-->
+
+<!--                            <button id="btn-forecast" class="btn btn-sm btn-outline-primary">-->
+<!--                                <i class="fas fa-calendar-alt me-1"></i> 查看明日预测-->
+<!--                            </button>-->
+<!--                        </div>-->
+<!--                    </div>-->
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold"><i class="fas fa-chart-line text-primary me-2"></i>明日发电功率预测对比 (24H)</h5>
+                        <div class="btn-group shadow-sm">
+                            <button class="btn btn-sm btn-outline-info" onclick="changeWeather('rainy')">
+                                <i class="fas fa-cloud-rain me-1"></i> 雨天预测
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="changeWeather('cloudy')">
+                                <i class="fas fa-cloud me-1"></i> 多云预测
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="changeWeather('sunny')">
+                                <i class="fas fa-sun me-1"></i> 晴天预测
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="pvTrendChart" style="height: 350px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white py-3">
+                        <h5 class="mb-0 fw-bold"><i class="fas fa-brain text-purple me-2"></i>模型偏差分析与优化</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-light border-secondary border-opacity-25 mb-3">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> 业务规则：连续 3 天偏差率超 15%，触发模型重训练。
+                            </small>
+                        </div>
+
+                        <h6 class="small fw-bold text-secondary mb-3">近3日预测偏差统计</h6>
+
+                        <div id="deviation-list">
+                            <div class="text-center text-muted small py-3">加载中...</div>
+                        </div>
+
+                        <hr>
+
+                        <div class="d-flex align-items-center mt-3">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">当前模型状态</h6>
+                                <span id="model-status-badge" class="badge bg-success">检测中...</span>
+
+                                <small id="model-status-desc" class="text-muted ms-1">检测中...</small>
+                            </div>
+
+                            <button id="btn-optimize" class="btn btn-outline-secondary btn-sm" disabled>
+                                <i class="fas fa-check me-1"></i> 无需优化
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold"><i class="fas fa-server text-secondary me-2"></i>设备实时采集监控 (4G/内网)</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">设备名称</th>
+                            <th>设备类型</th>
+                            <th>通讯方式</th>
+                            <th>实时功率 (kW)</th>
+                            <th>逆变效率</th>
+                            <th>数据上传时间</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="device-table-body">
+                        <tr><td colspan="7" class="text-center text-muted">正在获取设备状态...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    {% endfor %}
-</div>
-{% endblock %}
+
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
+    <script>
+    var myChart;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1. 初始化 ECharts 实例
+        var chartDom = document.getElementById('pvTrendChart');
+        if (chartDom) {
+            myChart = echarts.init(chartDom);
+
+            // 生成 288 个刻度标签 (00:00, 00:05, ... 23:55)
+            var xLabels = [];
+            for (let h = 0; h < 24; h++) {
+                for (let m = 0; m < 60; m += 5) {
+                    xLabels.push((h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m));
+                }
+            }
+
+            var option = {
+                tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+                legend: { data: ['实际功率 (kW)', '预测功率 (kW)'], bottom: 0 },
+                grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: xLabels,
+                    axisLabel: {
+                        interval: 11, // 每小时显示一个标签
+                        formatter: function(value) { return value; }
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '功率 (kW)',
+                    max: function(value) { return value.max > 200 ? 1700 : 200; }
+                },
+                series: [
+                    {
+                        name: '实际功率 (kW)',
+                        type: 'line',
+                        smooth: true,
+                        showSymbol: false,
+                        connectNulls: false,
+
+                        // ✅ 修改 2: 增加面积样式
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: 'rgba(25, 135, 84, 0.5)' }, // 顶部深绿
+                                { offset: 1, color: 'rgba(25, 135, 84, 0.0)' }  // 底部透明
+                            ])
+                        },
+                        lineStyle: { width: 3, color: '#198754' },
+                        itemStyle: { color: '#198754' },
+                        data: [] // 由 loadPVData 填充
+                    },
+                    {
+                        name: '预测功率 (kW)',
+                        type: 'line',
+                        smooth: true,
+                        showSymbol: false,
+                        lineStyle: { type: 'dashed', width: 2, color: '#0d6efd' },
+                        itemStyle: { color: '#0d6efd' },
+                        data: []
+                    }
+                ]
+            };
+            myChart.setOption(option);
+            window.addEventListener('resize', () => myChart.resize());
+        }
+
+        // 2. 启动数据加载
+        loadPVData();
+        loadDeviceTable();
+        // 初始加载一次预测数据，确保蓝线出来
+        loadForecastData();
+
+        // 3. 定时刷新
+        setInterval(() => {
+            loadPVData();
+            loadDeviceTable();
+        }, 10000);
+
+        const btnRefresh = document.getElementById('btn-refresh');
+        if (btnRefresh) {
+            btnRefresh.addEventListener('click', loadPVData);
+        }
+    });
+
+    /**
+     * 获取实时功率数据（更新绿线）
+     */
+    function loadPVData() {
+        const btnRefresh = document.getElementById('btn-refresh');
+        if (btnRefresh) btnRefresh.disabled = true;
+
+        fetch('/monitor/api/pv/realtime')
+            .then(response => response.json())
+            .then(data => {
+                // 更新数字卡片
+                if(document.getElementById('val-power')) document.getElementById('val-power').innerText = data.current_power;
+                if(document.getElementById('val-energy')) document.getElementById('val-energy').innerText = data.daily_energy;
+                if(document.getElementById('val-co2')) document.getElementById('val-co2').innerText = data.co2_reduce;
+
+                const elDev = document.getElementById('val-deviation');
+                if(elDev) {
+                    elDev.innerText = data.deviation_rate;
+                    elDev.className = data.deviation_rate > 15 ? "text-danger fw-bold" : "text-success";
+                }
+
+                // ✅ 更新图表：绿线(0)和蓝线(1)同时从实时接口获取最新的
+                if (myChart) {
+                    myChart.setOption({
+                        series: [
+                            { name: '实际功率 (kW)', data: data.chart_series },
+                            { name: '预测功率 (kW)', data: data.forecast_series }
+                        ]
+                    });
+                }
+
+                if (document.getElementById('last-updated-time')) {
+                    document.getElementById('last-updated-time').innerText = new Date().toLocaleTimeString();
+                }
+
+                checkModelHealth();
+            })
+            .catch(err => console.error("数据获取失败:", err))
+            .finally(() => {
+                if (btnRefresh) btnRefresh.disabled = false;
+            });
+    }
+
+    /**
+     * 更新预测曲线（切换天气用）
+     */
+    function changeWeather(type) {
+        fetch(`/monitor/api/pv/forecast?weather=${type}`)
+            .then(res => res.json())
+            .then(res => {
+                if (!res.data) return;
+                const weatherNames = {'sunny': '晴天', 'cloudy': '多云', 'rainy': '雨天'};
+                if (myChart) {
+                    myChart.setOption({
+                        title: { text: `模拟预测 (${weatherNames[type]})`, left: 'center', textStyle: { fontSize: 14, color: '#666' } },
+                        series: [{}, { data: res.data }]
+                    });
+                }
+            });
+    }
+
+    /**
+     * 基础预测加载（优化后调用）
+     */
+    function loadForecastData() {
+        fetch('/monitor/api/pv/forecast')
+            .then(res => res.json())
+            .then(res => {
+                if (res.data && myChart) {
+                    myChart.setOption({ series: [{}, { data: res.data }] });
+                }
+            });
+    }
+
+    function loadDeviceTable() {
+        fetch('/monitor/api/devices/status')
+            .then(res => res.json())
+            .then(res => {
+                const tbody = document.getElementById('device-table-body');
+                if (!tbody || !res.data) return;
+                let html = '';
+                res.data.forEach(dev => {
+                    const isOnline = dev.status === 'online';
+                    html += `<tr><td class="ps-4 fw-bold">${dev.name}</td><td>${dev.type}</td><td><span class="badge bg-light text-dark border">${dev.protocol}</span></td><td class="fw-bold text-primary">${dev.power}</td><td>${dev.efficiency}%</td><td>${dev.last_update}</td><td><span class="badge ${isOnline ? 'bg-success' : 'bg-secondary'}">${isOnline ? '在线' : '离线'}</span></td></tr>`;
+                });
+                tbody.innerHTML = html;
+            });
+    }
+
+    function checkModelHealth() {
+        // 获取组件引用
+        const statusBadge = document.getElementById('model-status-badge');
+        const btnOptimize = document.getElementById('btn-optimize');
+
+        fetch('/monitor/api/pv/model_status')
+            .then(res => res.json())
+            .then(data => {
+                const devList = document.getElementById('deviation-list');
+                if (devList && data.history) {
+                    let htmlContent = '';
+                    data.history.forEach(item => {
+                        const isRisk = item.deviation > 15;
+                        htmlContent += `
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between small mb-1">
+                                    <span>${item.date}</span>
+                                    <span class="${isRisk ? 'text-danger' : 'text-success'} fw-bold">${item.deviation}%</span>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar ${isRisk ? 'bg-danger' : 'bg-success'}" style="width: ${Math.min(item.deviation, 100)}%"></div>
+                                </div>
+                            </div>`;
+                    });
+                    devList.innerHTML = htmlContent;
+                }
+
+                // ✅ 同步更新按钮状态
+                if (statusBadge && btnOptimize) {
+                    if(data.status === 'risk') {
+                        statusBadge.className = 'badge bg-danger';
+                        statusBadge.innerText = '偏差过大';
+                        btnOptimize.disabled = false;
+                        btnOptimize.className = 'btn btn-danger btn-sm';
+                        btnOptimize.innerHTML = '<i class="fas fa-tools me-1"></i> 立即优化模型';
+                        btnOptimize.onclick = function() { triggerOptimize(this); };
+                    } else {
+                        statusBadge.className = 'badge bg-success';
+                        statusBadge.innerText = '健康';
+                        btnOptimize.disabled = true;
+                        btnOptimize.className = 'btn btn-outline-secondary btn-sm';
+                        btnOptimize.innerHTML = '<i class="fas fa-check me-1"></i> 无需优化';
+                    }
+                }
+            });
+    }
+
+    function triggerOptimize(btn) {
+        if(!confirm("确认要校准模型吗？")) return;
+        btn.disabled = true;
+        fetch('/monitor/api/pv/optimize', { method: 'POST' })
+            .then(res => res.json())
+            .then(res => {
+                if(res.code === 200) {
+                    alert("✅ " + res.msg);
+                    loadPVData();
+                    loadForecastData();
+                }
+            })
+            .finally(() => { btn.disabled = false; });
+    }
+</script>
+    {% endblock %}

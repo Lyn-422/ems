@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="text-primary"><i class="fas fa-server me-2"></i>系统运行监控</h3>
+        <a href="{{ url_for('admin.system_monitor') }}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-sync-alt"></i> 刷新状态
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100 border-start border-4 border-info">
+                <div class="card-body">
+                    <h5 class="card-title text-muted mb-3">数据库连接</h5>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="display-6 me-3">
+                            {% if status.db_status == '正常' %}
+                                <i class="fas fa-database text-success"></i>
+                            {% else %}
+                                <i class="fas fa-database text-danger"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h4 class="mb-0">{{ status.db_status }}</h4>
+                            <small class="text-muted">响应延迟: {{ status.db_latency }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100 border-start border-4 border-warning">
+                <div class="card-body">
+                    <h5 class="card-title text-muted mb-3">磁盘空间 (Root)</h5>
+                    <h3 class="mb-2">{{ status.disk_usage }} 使用率</h3>
+                    <p class="text-muted mb-0">剩余空间: {{ status.disk_free }}</p>
+                    <div class="progress mt-2" style="height: 5px;">
+                        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ status.disk_usage }};"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100 border-start border-4 border-primary">
+                <div class="card-body">
+                    <h5 class="card-title text-muted mb-3">内存使用率</h5>
+                    <div class="d-flex align-items-center">
+                        <h3 class="mb-0 me-3">{{ status.mem_usage }}</h3>
+                        <i class="fas fa-memory text-primary fa-2x"></i>
+                    </div>
+                    <div class="progress mt-3" style="height: 5px;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ status.mem_usage }};"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100 border-start border-4 border-success">
+                <div class="card-body">
+                    <h5 class="card-title text-muted mb-3">CPU 负载</h5>
+                    <div class="d-flex align-items-center">
+                        <h3 class="mb-0 me-3">{{ status.cpu_usage }}</h3>
+                        <i class="fas fa-microchip text-success fa-2x"></i>
+                    </div>
+                    <div class="progress mt-3" style="height: 5px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ status.cpu_usage }};"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if status.os_error %}
+    <div class="alert alert-warning mt-4">
+        <i class="fas fa-exclamation-triangle me-2"></i> 获取部分硬件信息失败: {{ status.os_error }}
+        <br>
+        <small>(请确保服务器已安装 <code>psutil</code> 库)</small>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

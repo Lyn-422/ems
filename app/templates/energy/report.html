@@ -2,15 +2,28 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>日能耗成本分析报表</h3>
-    <form class="d-flex align-items-center" method="GET">
-        <select name="plant_id" class="form-select me-2" style="width: 200px;" required>
-            <option value="" disabled selected>选择厂区...</option>
+    <form method="get">
+        <label for="plant_id">厂区:</label>
+        <select name="plant_id" id="plant_id">
             {% for plant in plants %}
-            <option value="{{ plant.plant_id }}">{{ plant.plant_name }}</option>
+                <option value="{{ plant.plant_id }}" {% if plant.plant_id == request.args.get('plant_id') %}selected{% endif %}>
+                    {{ plant.plant_name }}
+                </option>
             {% endfor %}
         </select>
-        <input type="date" name="date" class="form-control me-2" required>
-        <button type="submit" class="btn btn-primary">生成/查询</button>
+
+        <label for="date">日期:</label>
+        <input type="date" id="date" name="date" value="{{ request.args.get('date') }}">
+
+        <label for="energy_type">能源类型:</label>
+        <select name="energy_type" id="energy_type">
+            <option value="electric" {% if request.args.get('energy_type') == 'electric' %}selected{% endif %}>电力</option>
+            <option value="water" {% if request.args.get('energy_type') == 'water' %}selected{% endif %}>水</option>
+            <option value="gas" {% if request.args.get('energy_type') == 'gas' %}selected{% endif %}>天然气</option>
+            <option value="steam" {% if request.args.get('energy_type') == 'steam' %}selected{% endif %}>蒸汽</option>
+        </select>
+
+        <button type="submit">查询报表</button>
     </form>
 </div>
 
@@ -22,25 +35,38 @@
             <th>高峰用量</th>
             <th>平段用量</th>
             <th>低谷用量</th>
-            <th>总能耗 (kWh)</th>
-            <th>平均电价 (元)</th>
+            <th>总能耗 </th>
+            <th>平均成本 (元)</th>
             <th>总成本 (元)</th>
         </tr>
     </thead>
-    <tbody>
-        {% for r in reports %}
+<tbody>
+    {% if request.args.get('plant_id') and request.args.get('date') %}
+        {% if report %}
         <tr>
-            <td>{{ r.stat_date }}</td>
-            <td class="text-danger">{{ r.sharp_value }}</td>
-            <td class="text-warning">{{ r.high_value }}</td> <td class="text-primary">{{ r.flat_value }}</td>
-            <td class="text-success">{{ r.low_value }}</td>
-            <td class="fw-bold">{{ r.total_value }}</td>
-            <td>{{ r.price_per_unit }}</td>
-            <td class="fw-bold text-danger fs-5">¥ {{ r.total_cost }}</td>
+            <td>{{ report.stat_date }}</td>
+            <td class="text-danger">{{ report.sharp_value }}</td>
+            <td class="text-warning">{{ report.peak_value }}</td>
+            <td class="text-primary">{{ report.flat_value }}</td>
+            <td class="text-success">{{ report.valley_value }}</td>
+            <td class="fw-bold">{{ report.total_value }}</td>
+            <td>{{ report.price_per_unit }}</td>
+            <td class="fw-bold text-danger fs-5">¥ {{ report.total_cost }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="8" class="text-muted py-5">请选择厂区和日期进行查询</td></tr>
-        {% endfor %}
-    </tbody>
+        <tr>
+            <td colspan="8" class="text-muted py-5">
+                当前条件下暂无能耗数据
+            </td>
+        </tr>
+        {% endif %}
+    {% else %}
+    <tr>
+        <td colspan="8" class="text-muted py-5">
+            请选择厂区、日期和能源类型进行查询
+        </td>
+    </tr>
+    {% endif %}
+</tbody>
 </table>
 {% endblock %}

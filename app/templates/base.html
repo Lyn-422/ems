@@ -11,6 +11,7 @@
 </head>
 <body>
     <div class="d-flex">
+        {# 获取当前用户的所有角色名列表 #}
         {% set user_roles = current_user.roles|map(attribute='role_name')|list %}
 
         <div class="sidebar col-md-2 d-none d-md-block">
@@ -26,7 +27,9 @@
 
             {% if 'energy_manager' in user_roles or 'admin' in user_roles %}
             <div class="text-uppercase small text-muted mt-3 px-3">能耗管理</div>
-            <a href="{{ url_for('energy.cost_report') }}"><i class="fas fa-file-invoice-dollar me-2"></i> 成本报表分析</a>
+            <a href="{{ url_for('energy.cost_report') }}"><i class="fas fa-file-invoice-dollar me-2"></i> 日能耗成本报表分析</a>
+            <a href="{{ url_for('energy.verify_energy_data') }}"><i class="fas fa-exclamation-triangle me-2"></i>待核实能耗数据</a>
+            <a href="{{ url_for('energy.high_energy_analysis') }}"><i class="fas fa-chart-bar me-2"></i>高耗能厂区分析</a>
             {% endif %}
 
             {% if 'operator' in user_roles or 'order_manager' in user_roles or 'admin' in user_roles %}
@@ -38,9 +41,16 @@
             <a href="{{ url_for('maintenance.my_tasks') }}"><i class="fas fa-tools me-2"></i> 我的工单</a>
             {% endif %}
 
+            {% if 'order_manager' in user_roles or 'admin' in user_roles %}
+            <a href="{{ url_for('maintenance.all_tasks') }}"><i class="fas fa-clipboard-list me-2"></i> 现有工单总览</a>
+            {% endif %}
+
             {% if 'admin' in user_roles %}
-            <div class="text-uppercase small text-muted mt-3 px-3">系统设置</div>
+            <div class="text-uppercase small text-muted mt-3 px-3">系统管理</div>
             <a href="{{ url_for('admin.user_management') }}"><i class="fas fa-users-cog me-2"></i> 用户权限管理</a>
+            <a href="{{ url_for('admin.system_monitor') }}"><i class="fas fa-server me-2"></i> 系统运行监控</a>
+            <a href="{{ url_for('admin.config_management') }}"><i class="fas fa-sliders-h me-2"></i> 告警规则配置</a>
+            <a href="{{ url_for('admin.backup_page') }}"><i class="fas fa-database me-2"></i> 数据备份与恢复</a>
             {% endif %}
         </div>
 

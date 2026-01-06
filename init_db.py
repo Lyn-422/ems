@@ -7,7 +7,7 @@ app = create_app()
 
 with app.app_context():
     # 1. 删除旧表并重置 (开发阶段推荐，生产环境请慎用)
-    # db.drop_all()
+    db.drop_all()
     # print("已清理旧数据表...")
 
     # 2. 创建所有新表
@@ -52,13 +52,13 @@ with app.app_context():
         print("管理员账号已存在。")
 
     # 5. (可选) 初始化一个演示用的厂区和配电房，方便你登录后不看空数据
-    if not Plant.query.first():
-        p = Plant(plant_code='PLANT_001', plant_name='第一生产基地', location_desc='北京海淀')
-        db.session.add(p)
-        db.session.commit()
-
-        pr = PowerRoom(room_code='ROOM_A', room_name='1#总配电室', voltage_level='35KV', location_desc='基地北侧',
-                       responsible_id=admin.user_id)
-        db.session.add(pr)
-        db.session.commit()
-        print("演示基础数据初始化完成。")
+    # if not Plant.query.first():
+    #     p = Plant(plant_code='PLANT_001', plant_name='第一生产基地', location_desc='北京海淀')
+    #     db.session.add(p)
+    #     db.session.commit()
+    #
+    #     pr = PowerRoom(room_code='ROOM_A', room_name='1#总配电室', voltage_level='35KV', location_desc='基地北侧',
+    #                    responsible_id=admin.user_id)
+    #     db.session.add(pr)
+    #     db.session.commit()
+    #     print("演示基础数据初始化完成。")

@@ -204,14 +204,15 @@ CREATE TABLE IF NOT EXISTS energy_data (
 CREATE TABLE IF NOT EXISTS peak_valley_energy (
     pv_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     plant_id BIGINT NOT NULL,
+    energy_type VARCHAR(20) NOT NULL COMMENT '能源类型',
     stat_date DATE NOT NULL COMMENT '统计日期',
     sharp_value DECIMAL(12, 2) COMMENT '尖峰值',
     high_value DECIMAL(12, 2) COMMENT '高峰值',
     flat_value DECIMAL(12, 2) COMMENT '平段值',
     low_value DECIMAL(12, 2) COMMENT '低谷值',
     total_value DECIMAL(12, 2) COMMENT '总能耗',
-    price_per_unit DECIMAL(10, 4) COMMENT '单位电价',
-    total_cost DECIMAL(12, 2) COMMENT '总费用',
+    price_per_unit DECIMAL(10, 4) COMMENT '单位成本',
+    total_cost DECIMAL(12, 2) COMMENT '总成本',
     FOREIGN KEY (plant_id) REFERENCES plant(plant_id)
 ) COMMENT='峰谷能耗统计表';
 

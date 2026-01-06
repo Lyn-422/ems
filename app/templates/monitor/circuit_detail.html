@@ -1,46 +1,106 @@
 {% extends "base.html" %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center">
-    <h3>{{ room.room_name }} - 回路监测详情</h3>
-    <a href="{{ url_for('monitor.distribution_list') }}" class="btn btn-secondary btn-sm">返回列表</a>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h3 class="mb-0">{{ room.room_name }} - 回路监测详情</h3>
+        <small class="text-muted">显示最新采集的实时遥测数据</small>
+    </div>
+    <div>
+        <span class="badge bg-danger me-2">■ 异常告警</span>
+        <span class="badge bg-warning text-dark me-2">■ 数据缺失</span>
+        <a href="{{ url_for('monitor.distribution_list') }}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> 返回列表
+        </a>
+    </div>
 </div>
 
-<table class="table table-striped mt-3 bg-white">
-    <thead>
-        <tr>
-            <th>采集时间</th>
-            <th>回路编号</th>
-            <th>电压 (kV)</th>
-            <th>电流 (A)</th>
-            <th>有功功率 (kW)</th>
-            <th>开关状态</th>
-            <th>异常状态</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for c in circuits %}
-        <tr>
-            <td>{{ c.collect_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-            <td>{{ c.circuit_code }}</td>
-            <td>{{ c.voltage_kv }}</td>
-            <td>{{ c.current_a }}</td>
-            <td class="fw-bold">{{ c.active_power_kw }}</td>
-            <td>
-                {% if c.switch_status == '合闸' %}
-                    <span class="text-success">● 合闸</span>
-                {% else %}
-                    <span class="text-danger">○ 分闸</span>
-                {% endif %}
-            </td>
-            <td>
-                {% if c.is_abnormal %}
-                    <span class="badge bg-danger">异常</span>
-                {% else %}
-                    <span class="badge bg-success">正常</span>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="table-responsive">
+    <table class="table table-hover table-bordered shadow-sm bg-white align-middle">
+        <thead class="table-light text-center">
+            <tr>
+                <th style="width: 160px;">采集时间</th>
+                <th>回路编号</th>
+                <th>电压/电流</th>
+                <th>功率数据<br><small class="text-muted">(有功/无功/因数)</small></th>
+                <th>累计电能<br><small class="text-muted">(正向/反向)</small></th>
+                <th>温度监测<br><small class="text-muted">(电缆/电容)</small></th>
+                <th>开关状态</th>
+                <th>数据校验</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in circuits %}
+            {% set is_missing = c.voltage_kv is none or c.current_a is none %}
+
+            <tr class="text-center {{ 'table-danger' if c.is_abnormal else ('table-warning' if is_missing else '') }}">
+
+                <td>{{ c.collect_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+
+                <td class="fw-bold">{{ c.circuit_code }}</td>
+
+                <td>
+                    <div class="d-flex flex-column align-items-start ps-4">
+                        <span>U: {{ c.voltage_kv if c.voltage_kv is not none else '-' }} kV</span>
+                        <span>I : {{ c.current_a if c.current_a is not none else '-' }} A</span>
+                    </div>
+                </td>
+
+                <td>
+                    <div class="d-flex flex-column align-items-start ps-4 small">
+                        <span>P : <strong>{{ c.active_power_kw }}</strong> kW</span>
+                        <span class="text-muted">Q : {{ c.reactive_power_kvar or '-' }} kVar</span>
+                        <span class="text-muted">PF: {{ c.power_factor or '-' }}</span>
+                    </div>
+                </td>
+
+                <td class="small text-muted">
+                    <div>正: {{ c.forward_kwh }} kWh</div>
+                    <div>反: {{ c.reverse_kwh or 0 }} kWh</div>
+                </td>
+
+                <td>
+                    {% if c.cable_temp_c and c.cable_temp_c > 80 %}
+                        <span class="text-danger fw-bold"><i class="fas fa-fire"></i> {{ c.cable_temp_c }}℃</span>
+                    {% else %}
+                        <span>{{ c.cable_temp_c or '-' }}℃</span>
+                    {% endif %}
+                    <span class="mx-1">/</span>
+                    <span>{{ c.capacitor_temp_c or '-' }}℃</span>
+                </td>
+
+                <td>
+                    {% if c.switch_status == '合闸' %}
+                        <span class="badge rounded-pill bg-success">● 合闸</span>
+                    {% else %}
+                        <span class="badge rounded-pill bg-secondary">○ 分闸</span>
+                    {% endif %}
+                </td>
+
+                <td>
+                    {% if c.is_abnormal %}
+                        <span class="badge bg-danger">
+                            <i class="fas fa-exclamation-triangle"></i> 数据异常
+                        </span>
+                    {% elif is_missing %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-question-circle"></i> 数据不完整
+                        </span>
+                    {% else %}
+                        <span class="badge bg-success">
+                            <i class="fas fa-check-circle"></i> 正常
+                        </span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="text-center py-4 text-muted">
+                    暂无回路采集数据
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}

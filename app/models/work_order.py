@@ -22,6 +22,8 @@ class Alarm(db.Model):
 class WorkOrder(db.Model):
     """ 运维工单 [cite: 55] """
     __tablename__ = 'work_order'
+    # 【新增字段】用于存储派单时的指导意见
+    instruction_desc = db.Column(db.String(255), comment='派单时填写的指导意见')
     work_order_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     alarm_id = db.Column(db.BigInteger, db.ForeignKey('alarm.alarm_id'), nullable=False)
 
@@ -29,6 +31,7 @@ class WorkOrder(db.Model):
     maintainer_id = db.Column(db.BigInteger, db.ForeignKey('sys_user.user_id'))
 
     dispatch_time = db.Column(db.DateTime)
+    response_time = db.Column(db.DateTime)
     finish_time = db.Column(db.DateTime)
     result_desc = db.Column(db.String(255))
     review_status = db.Column(db.String(20))

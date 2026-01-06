@@ -1,7 +1,7 @@
 # app/services/alarm_service.py
 from datetime import datetime
 from app.extensions import db
-from app.models import Alarm, WorkOrder, EquipmentLedger
+from app.models import Alarm, WorkOrder, EquipmentLedger, SystemConfig
 
 
 class AlarmService:
@@ -55,7 +55,8 @@ class AlarmService:
                 maintainer_id=maintainer_id,
                 dispatch_time=datetime.now(),
                 review_status='待处理',
-                result_desc=instruction  # 派单时可填写指导意见
+                # 【关键修改】指导意见存入新字段
+                instruction_desc=instruction
             )
 
             # 更新告警状态
@@ -93,3 +94,19 @@ class AlarmService:
         except Exception as e:
             db.session.rollback()
             return False, str(e)
+
+    @staticmethod
+    def get_dynamic_threshold(key, default_val=85.0):
+        """
+        从数据库读取最新的告警阈值
+        :param key: 配置键 (如 'transformer_temp_high')
+        :param default_val: 如果没配，使用的默认值
+        :return: float 类型的阈值
+        """
+        try:
+            config = SystemConfig.query.get(key)
+            if config:
+                return float(config.config_value)
+            return float(default_val)
+        except:
+            return float(default_val)

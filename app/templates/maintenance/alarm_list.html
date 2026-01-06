@@ -1,7 +1,12 @@
 {% extends "base.html" %}
+
 {% block content %}
 <h3>告警监控中心</h3>
-<table class="table table-hover mt-3 bg-white shadow-sm">
+
+{# 提取当前用户角色列表，方便后续逻辑判断 #}
+{% set user_roles = current_user.roles|map(attribute='role_name')|list %}
+
+<table class="table table-hover mt-3 bg-white shadow-sm align-middle">
     <thead>
         <tr>
             <th>发生时间</th>
@@ -25,15 +30,17 @@
                     <span class="badge bg-info">低</span>
                 {% endif %}
             </td>
-            <td>{{ alarm.equipment.equipment_name }}</td>
+            <td>{{ alarm.equipment.equipment_name if alarm.equipment else '未知设备' }}</td>
             <td>{{ alarm.alarm_content }}</td>
             <td>
-                <span class="badge bg-{{ 'secondary' if alarm.handle_status=='未处理' else 'success' }}">
+                <span class="badge bg-{{ 'secondary' if alarm.handle_status=='未处理' else ('primary' if alarm.handle_status=='处理中' else 'success') }}">
                     {{ alarm.handle_status }}
                 </span>
             </td>
             <td>
-                {% if 'order_manager' in current_user.roles|map(attribute='role_name')|list or 'admin' in current_user.roles|map(attribute='role_name')|list %}
+                {# 权限检查：只有 运维经理、管理员、企业管理员 可以派单 #}
+                {% if 'order_manager' in user_roles or 'admin' in user_roles or 'enterprise_admin' in user_roles %}
+                    {# 只有“未处理”状态才显示派单按钮 #}
                     {% if alarm.handle_status == '未处理' %}
                     <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#dispatchModal{{ alarm.alarm_id }}">
                         派单
@@ -45,23 +52,33 @@
                     <div class="modal-dialog">
                         <div class="modal-content">
                             <form action="{{ url_for('maintenance.dispatch', alarm_id=alarm.alarm_id) }}" method="POST">
-                                <div class="modal-header"><h5 class="modal-title">创建运维工单</h5></div>
+                                <div class="modal-header">
+                                    <h5 class="modal-title">创建运维工单</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
                                 <div class="modal-body">
-                                    <p><strong>告警:</strong> {{ alarm.alarm_content }}</p>
+                                    <p><strong>告警对象:</strong> {{ alarm.equipment.equipment_name if alarm.equipment else '未知' }}</p>
+                                    <p><strong>告警内容:</strong> {{ alarm.alarm_content }}</p>
+
                                     <div class="mb-3">
-                                        <label>指派运维人员</label>
+                                        <label class="form-label">指派运维人员</label>
                                         <select name="maintainer_id" class="form-select" required>
+                                            <option value="" disabled selected>请选择人员...</option>
                                             {% for user in maintainers %}
-                                            <option value="{{ user.user_id }}">{{ user.real_name }} ({{ user.username }})</option>
+                                                {# 过滤逻辑：只显示拥有 operator 角色的用户 #}
+                                                {% if 'operator' in user.roles|map(attribute='role_name')|list %}
+                                                <option value="{{ user.user_id }}">{{ user.real_name }} ({{ user.username }})</option>
+                                                {% endif %}
                                             {% endfor %}
                                         </select>
                                     </div>
                                     <div class="mb-3">
-                                        <label>处理指导意见</label>
-                                        <textarea name="instruction" class="form-control" rows="2"></textarea>
+                                        <label class="form-label">处理指导意见</label>
+                                        <textarea name="instruction" class="form-control" rows="3" placeholder="请输入具体的维修指导或注意事项..."></textarea>
                                     </div>
                                 </div>
                                 <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                                     <button type="submit" class="btn btn-primary">确认派发</button>
                                 </div>
                             </form>

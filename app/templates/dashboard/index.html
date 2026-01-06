@@ -1,57 +1,196 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card text-white bg-primary mb-3">
-            <div class="card-body">
-                <h5 class="card-title">实时总功率 (kW)</h5>
-                <p class="card-text display-6">{{ power }}</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-success mb-3">
-            <div class="card-body">
-                <h5 class="card-title">今日光伏发电 (kWh)</h5>
-                <p class="card-text display-6">{{ pv }}</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-danger mb-3">
-            <div class="card-body">
-                <h5 class="card-title">严重告警 (未处理)</h5>
-                <p class="card-text display-6">{{ alarms.high }}</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-light mb-3">
-            <div class="card-body">
-                <h5 class="card-title text-muted">待处理工单</h5>
-                <p class="card-text display-6 text-dark">{{ alarms.total }}</p>
-            </div>
-        </div>
-    </div>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="text-secondary"><i class="fas fa-desktop me-2"></i>{{ config.config_name }}</h4>
+    <small class="text-muted">数据刷新: {{ config.refresh_rate_seconds }}秒/次</small>
 </div>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">配电网负荷趋势 (最近10次采集)</div>
+{% if config.module_energy_overview %}
+<h5 class="border-bottom pb-2 mb-3">多能源运行总览</h5>
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary mb-3 shadow-sm">
             <div class="card-body">
-                <div id="mainChart" style="height: 400px;"></div>
+                <h6 class="card-title"><i class="fas fa-bolt me-2"></i>总用电量 (kWh)</h6>
+                <p class="card-text display-6 fw-bold">{{ summary.total_elec_kwh }}</p>
+                <small>实时负荷</small>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">能耗构成</div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info mb-3 shadow-sm">
             <div class="card-body">
-                <div id="pieChart" style="height: 400px;"></div>
+                <h6 class="card-title"><i class="fas fa-tint me-2"></i>总用水量 (m³)</h6>
+                <p class="card-text display-6 fw-bold">{{ summary.total_water_m3 }}</p>
+                <small>今日累计</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning mb-3 shadow-sm">
+            <div class="card-body">
+                <h6 class="card-title"><i class="fas fa-fire me-2"></i>天然气 (m³)</h6>
+                <p class="card-text display-6 fw-bold text-dark">{{ summary.total_gas_m3 }}</p>
+                <small class="text-dark">今日累计</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-secondary mb-3 shadow-sm">
+            <div class="card-body">
+                <h6 class="card-title"><i class="fas fa-cloud me-2"></i>蒸汽消耗 (t)</h6>
+                <p class="card-text display-6 fw-bold">{{ summary.total_steam_t }}</p>
+                <small>今日累计</small>
             </div>
         </div>
     </div>
 </div>
+{% endif %}
+
+{% if config.module_pv_overview %}
+<h5 class="border-bottom pb-2 mb-3">光伏发电与收益</h5>
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card bg-success text-white shadow-sm">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="card-title">今日发电量</h5>
+                    <p class="display-5 fw-bold mb-0">{{ summary.pv_gen_kwh }} <span class="fs-6">kWh</span></p>
+                </div>
+                <div class="text-end">
+                    <h5 class="card-title">预估收益</h5>
+                    <p class="display-5 fw-bold mb-0">¥ {{ (summary.pv_gen_kwh|float * 0.8)|round(2) }}</p>
+                    <small>自用节省电费</small>
+                </div>
+                <i class="fas fa-solar-panel fa-4x opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <h6><i class="fas fa-leaf text-success me-2"></i>节能减排贡献</h6>
+                <ul class="list-unstyled mt-3">
+                    <li class="mb-2">节约标准煤: <strong>{{ (summary.pv_gen_kwh|float * 0.123)|round(2) }}</strong> kg</li>
+                    <li class="mb-2">减少CO₂排放: <strong>{{ (summary.pv_gen_kwh|float * 0.997)|round(2) }}</strong> kg</li>
+                    <li>等效植树: <strong>{{ (summary.pv_gen_kwh|float * 0.05)|round(0) }}</strong> 棵</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    {% if config.module_grid_status %}
+    <div class="col-md-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <i class="fas fa-chart-line me-2"></i>配电网实时负荷趋势
+            </div>
+            <div class="card-body">
+                <div id="mainChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if config.module_alarm_stats %}
+    <div class="col-md-4">
+        <div class="card shadow-sm mb-4 border-danger">
+            <div class="card-header bg-danger text-white">
+                <i class="fas fa-exclamation-triangle me-2"></i>告警统计
+            </div>
+            <div class="card-body text-center">
+                <h3 class="text-danger fw-bold">{{ alarms.high }}</h3>
+                <p class="text-muted">当前未处理高等级告警</p>
+                <hr>
+                <div class="d-flex justify-content-around">
+                    <div>
+                        <span class="d-block fw-bold text-dark">{{ alarms.total }}</span>
+                        <small class="text-muted">总活跃告警</small>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('maintenance.alarm_list') }}" class="btn btn-sm btn-outline-danger">立即处理</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if config.module_history_trend %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <i class="fas fa-chart-bar me-2"></i>历史能耗趋势分析 (同比/环比)
+            </div>
+            <div class="card-body">
+                <div id="trendChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    var refreshSeconds = {{ config.refresh_rate_seconds }};
+    if (refreshSeconds > 0) {
+        setTimeout(function() { window.location.reload(); }, refreshSeconds * 1000);
+    }
+
+    // 如果开启了配电网模块，加载配电图
+    {% if config.module_grid_status %}
+    var chartDom = document.getElementById('mainChart');
+    if(chartDom){
+        var myChart = echarts.init(chartDom);
+        fetch('/dashboard/api/realtime_chart')
+            .then(response => response.json())
+            .then(data => {
+                var option = {
+                    tooltip: { trigger: 'axis' },
+                    xAxis: { type: 'category', data: data.time },
+                    yAxis: { type: 'value', name: '功率(kW)' },
+                    series: [{ data: data.value, type: 'line', smooth: true, areaStyle: {} }]
+                };
+                myChart.setOption(option);
+            });
+    }
+    {% endif %}
+
+    // 如果开启了趋势模块，加载趋势图
+    {% if config.module_history_trend %}
+    var trendDom = document.getElementById('trendChart');
+    if(trendDom){
+        var trendChart = echarts.init(trendDom);
+
+        // 【核心修改点】使用 url_for 生成正确的后端地址
+        // 原来是: fetch('/dashboard/api/trend_analysis')
+        fetch("{{ url_for('dashboard.get_trend_analysis') }}")
+            .then(response => response.json())
+            .then(data => {
+                // ... ECharts 的配置代码保持不变 ...
+                var option = {
+                    tooltip: { trigger: 'axis' },
+                    legend: { data: ['用电量', '光伏发电', '环比增长率'] },
+                    xAxis: { type: 'category', data: data.dates },
+                    yAxis: [
+                        { type: 'value', name: '能耗(kWh)' },
+                        { type: 'value', name: '环比(%)', splitLine: { show: false } }
+                    ],
+                    series: [
+                        { name: '用电量', type: 'bar', data: data.elec_values },
+                        { name: '光伏发电', type: 'bar', data: data.pv_values },
+                        { name: '环比增长率', type: 'line', yAxisIndex: 1, data: data.elec_mom }
+                    ]
+                };
+                trendChart.setOption(option);
+            })
+            .catch(err => console.error("图表加载失败:", err)); // 加个错误打印方便调试
+    }
+    {% endif %}
+</script>
 {% endblock %}

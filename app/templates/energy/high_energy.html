@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* 语义化颜色定义 */
+    .bg-soft-danger { background-color: rgba(220, 53, 69, 0.05); }
+    .text-danger-emphasis { color: #842029; }
+    .card-hover:hover { transform: translateY(-3px); transition: all 0.3s ease; box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="row g-4 mb-4">
+        <div class="col-xl-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <form method="get" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-muted">分析日期</label>
+                            <input type="date" class="form-control border-0 bg-light" name="date" value="{{ request.args.get('date') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-muted">能源维度</label>
+                            <select class="form-select border-0 bg-light" name="energy_type">
+                                <option value="electric" {% if energy_type=='electric' %}selected{% endif %}>⚡ 电力 (kWh)</option>
+                                <option value="water" {% if energy_type=='water' %}selected{% endif %}>💧 水 (m³)</option>
+                                <option value="gas" {% if energy_type=='gas' %}selected{% endif %}>🔥 天然气 (m³)</option>
+                                <option value="steam" {% if energy_type=='steam' %}selected{% endif %}>💨 蒸汽 (t)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-primary w-100 fw-bold shadow-sm">
+                                <i class="bi bi-search me-2"></i>开始深度分析
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <div class="card border-0 shadow-sm bg-primary text-white h-100">
+                <div class="card-body d-flex flex-column justify-content-center text-center">
+                    <span class="opacity-75 small mb-1">当日能耗基准线 (AVG)</span>
+                    <h2 class="fw-bold mb-0">{{ "%.2f"|format(avg_value or 0) }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if avg_value %}
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0">能耗偏差对比矩阵</h5>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-light border-0" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-three-dots"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="compareChart" style="height: 450px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0">
+                    风险清单
+                    <span class="badge rounded-pill bg-danger ms-2">{{ high_plants|length }}</span>
+                </h5>
+            </div>
+
+            <div class="overflow-auto" style="max-height: 520px; padding-right: 10px;">
+                {% if high_plants %}
+                    <div class="row row-cols-1 g-3">
+                        {% for p in high_plants %}
+                        <div class="col">
+                            <div class="card border-0 shadow-sm card-hover border-start border-4 {% if p.exceed_pct > 100 %}border-dark{% else %}border-danger{% endif %}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div>
+                                            <h6 class="fw-bold mb-1">{{ p.plant_name }}</h6>
+                                            <span class="badge bg-soft-danger text-danger border border-danger-subtle small">
+                                                ID: {{ p.plant_id }}
+                                            </span>
+                                        </div>
+                                        <div class="text-end">
+                                            <h5 class="fw-bold text-danger mb-0">+{{ "%.1f"|format(p.exceed_pct) }}%</h5>
+                                            <small class="text-muted small">超出基准</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-2 d-flex justify-content-between small">
+                                        <span class="text-muted">实测能耗</span>
+                                        <span class="fw-bold">{{ "%.2f"|format(p.total_value) }}</span>
+                                    </div>
+
+                                    <div class="progress" style="height: 6px;">
+                                        {% set p_color = 'bg-danger' %}
+                                        {% if p.exceed_pct > 100 %}{% set p_color = 'bg-dark' %}{% endif %}
+                                        <div class="progress-bar {{ p_color }} progress-bar-striped progress-bar-animated"
+                                             style="width: {{ p.exceed_pct if p.exceed_pct < 100 else 100 }}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center py-5">
+                            <i class="bi bi-shield-check text-success display-4"></i>
+                            <p class="mt-3 mb-0 fw-bold text-success">今日无异常高耗能单元</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        {% if high_plants %}
+        const chartDom = document.getElementById('compareChart');
+        const myChart = echarts.init(chartDom);
+
+        // 厂区多的时候自动启用缩放
+        const showDataZoom = {{ high_plants|length }} > 5;
+
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                borderRadius: 8,
+                shadowColor: 'rgba(0, 0, 0, 0.1)',
+                shadowBlur: 10,
+                formatter: function(params) {
+                    let data = params[0];
+                    return `<div style="padding:5px">
+                        <b style="color:#333">${data.name}</b><br/>
+                        <span style="color:#d9534f">●</span> 能耗值: <b>${data.value}</b><br/>
+                        <span style="color:#666">●</span> 基准线: <b>{{ "%.2f"|format(avg_value) }}</b>
+                    </div>`;
+                }
+            },
+            grid: { top: '10%', bottom: showDataZoom ? '15%' : '10%', left: '8%', right: '5%' },
+            dataZoom: showDataZoom ? [{ type: 'inside' }, { type: 'slider', height: 20 }] : [],
+            xAxis: {
+                type: 'category',
+                data: [{% for p in high_plants %}"{{ p.plant_name }}",{% endfor %}],
+                axisLine: { lineStyle: { color: '#eee' } },
+                axisLabel: { color: '#666', fontSize: 11 }
+            },
+            yAxis: {
+                type: 'value',
+                splitLine: { lineStyle: { type: 'dashed', color: '#f0f0f0' } }
+            },
+            series: [{
+                name: '能耗实测',
+                type: 'bar',
+                barWidth: '35%',
+                data: [{% for p in high_plants %}{{ p.total_value }},{% endfor %}],
+                itemStyle: {
+                    borderRadius: [4, 4, 0, 0],
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: '#eb4d4b' },
+                        { offset: 1, color: '#ff7979' }
+                    ])
+                },
+                markLine: {
+                    symbol: ['none', 'none'],
+                    label: { position: 'end', formatter: '基准', color: '#999' },
+                    lineStyle: { color: '#999', type: 'dashed' },
+                    data: [{ yAxis: {{ avg_value }} }]
+                }
+            }]
+        };
+
+        myChart.setOption(option);
+        window.addEventListener('resize', myChart.resize);
+        {% endif %}
+    });
+</script>
+{% endblock %}
