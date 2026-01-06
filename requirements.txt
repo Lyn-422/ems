@@ -10,3 +10,6 @@ Flask-Login==0.6.3
 
 # [cite_start]密码哈希加密工具 (用于 MD5/SHA-256 加密 [cite: 130])
 Werkzeug==3.0.1
+
+# 系统监控工具 (用于获取 CPU、内存等硬件信息)
+psutil==7.2.1

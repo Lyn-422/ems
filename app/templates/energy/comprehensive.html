@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">
+                <i class="bi bi-bar-chart-line-fill text-primary me-2"></i>
+                {{ year }}年 第{{ period_value }}{{ '月' if period_type == 'month' else '季度' }}全厂能耗分析报告
+            </h3>
+            <p class="text-muted small mb-0">多维度交叉透视：跨厂区成本对比、能源结构占比分析</p>
+        </div>
+        <div class="btn-group shadow-sm">
+            <button class="btn btn-outline-primary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>打印报告</button>
+            <button class="btn btn-primary btn-sm"><i class="bi bi-file-earmark-excel me-1"></i>导出数据</button>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">年度</label>
+                    <input type="number" name="year" class="form-control border-0 bg-light" value="{{ year }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">统计维度</label>
+                    <select name="period_type" id="p_type" class="form-select border-0 bg-light">
+                        <option value="month" {% if period_type=='month' %}selected{% endif %}>📅 按月份</option>
+                        <option value="quarter" {% if period_type=='quarter' %}selected{% endif %}>🧱 按季度</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">选择周期</label>
+                    <select name="period_value" id="p_val" class="form-select border-0 bg-light"></select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">生成分析报告</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 fw-bold pt-3"><i class="bi bi-pie-chart text-warning me-2"></i>成本结构占比</div>
+                <div class="card-body">
+                    <div id="costPieChart" style="height: 350px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 fw-bold pt-3"><i class="bi bi-hdd-stack text-success me-2"></i>各厂区成本对比 (CNY)</div>
+                <div class="card-body">
+                    <div id="plantBarChart" style="height: 350px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0 fw-bold pt-3">经营数据明细 (跨能源透视)</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-center">
+                    <thead class="table-light">
+                        <tr class="small text-muted">
+                            <th class="ps-4 text-start">厂区名称</th>
+                            <th>能源类型</th>
+                            <th>周期总耗用</th>
+                            <th class="pe-4 text-end">周期总成本 (CNY)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for row in results %}
+                        <tr>
+                            <td class="ps-4 text-start fw-bold text-dark">{{ row[0] }}</td>
+                            <td>
+                                {% set e_names = {'electric':'⚡ 电力', 'water':'💧 水', 'gas':'🔥 天然气', 'steam':'💨 蒸汽'} %}
+                                <span class="badge bg-light text-dark border fw-normal">{{ e_names.get(row[1]) }}</span>
+                            </td>
+                            <td>{{ "%.2f"|format(row[2]) }}</td>
+                            <td class="pe-4 text-end fw-bold text-danger">
+                                <span class="small">¥</span> {{ "%.2f"|format(row[3]) }}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="4" class="py-5 text-muted">暂无相关经营数据</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script>
+// ==================== 1. 初始化饼图 (成本结构) ====================
+var pieChart = echarts.init(document.getElementById('costPieChart'));
+pieChart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
+    legend: { bottom: '5%', left: 'center' },
+    series: [{
+        name: '成本占比',
+        type: 'pie',
+        radius: ['40%', '70%'],
+        avoidLabelOverlap: false,
+        itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
+        label: { show: false },
+        emphasis: { label: { show: true, fontSize: '16', fontWeight: 'bold' } },
+        data: {{ chart_data.cost_pie | tojson }}
+    }]
+});
+
+// ==================== 2. 初始化柱状图 (厂区对比) ====================
+// 修复点：添加原本缺失的柱状图初始化脚本
+var barChart = echarts.init(document.getElementById('plantBarChart'));
+barChart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: '{b}: ¥{c}' },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: {
+        type: 'category',
+        data: {{ chart_data.plants | tojson }},  // 后端需返回 report_data["plants"]
+        axisTick: { alignWithLabel: true }
+    },
+    yAxis: { type: 'value', name: '成本 (元)' },
+    series: [{
+        name: '总成本',
+        type: 'bar',
+        barWidth: '40%',
+        data: {{ chart_data.plant_costs | tojson }}, // 后端需返回 report_data["plant_costs"]
+        itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#83bff6' },
+                { offset: 0.5, color: '#188df0' },
+                { offset: 1, color: '#188df0' }
+            ]),
+            borderRadius: [5, 5, 0, 0]
+        },
+        label: { show: true, position: 'top', formatter: '¥{c}' }
+    }]
+});
+
+// ==================== 3. 下拉框联动与响应式 ====================
+function updateOptions() {
+    const type = document.getElementById('p_type').value;
+    const valSelect = document.getElementById('p_val');
+    valSelect.innerHTML = '';
+    const count = type === 'month' ? 12 : 4;
+    const label = type === 'month' ? '月' : '季度';
+    for (let i = 1; i <= count; i++) {
+        valSelect.add(new Option(i + label, i));
+    }
+    valSelect.value = "{{ period_value }}";
+}
+
+document.getElementById('p_type').addEventListener('change', updateOptions);
+window.addEventListener('resize', function() {
+    pieChart.resize();
+    barChart.resize();
+});
+updateOptions();
+</script>
+
+<style>
+    .bg-light { background-color: #f8f9fa !important; }
+    .table th { font-weight: 600; background-color: #f8f9fa; }
+</style>
+{% endblock %}

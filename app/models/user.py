@@ -40,6 +40,10 @@ class User(UserMixin, db.Model):
     status = db.Column(db.SmallInteger, default=1, comment='状态 1:正常 0:禁用')
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
+    # 【新增】登录安全字段
+    failed_login_count = db.Column(db.Integer, default=0, comment='连续登录失败次数')
+    locked_until = db.Column(db.DateTime, nullable=True, comment='账号锁定截止时间')
+
     # 关联关系: 多对多角色
     roles = db.relationship('Role', secondary=sys_user_role, backref=db.backref('users', lazy='dynamic'))
 
@@ -63,11 +67,12 @@ class User(UserMixin, db.Model):
     def get_id(self):
         return str(self.user_id)
 
-    @login_manager.user_loader
-    def load_user(user_id):
-        """
-        Flask-Login 需要此函数来根据 Session 中的 ID 获取用户对象
-        """
-        if user_id is None or user_id == 'None':
-            return None
-        return User.query.get(int(user_id))
+# 保持原有逻辑不变
+@login_manager.user_loader
+def load_user(user_id):
+    """
+    Flask-Login 需要此函数来根据 Session 中的 ID 获取用户对象
+    """
+    if user_id is None or user_id == 'None':
+        return None
+    return User.query.get(int(user_id))

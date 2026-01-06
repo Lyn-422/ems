@@ -2,7 +2,8 @@ from datetime import datetime
 
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 
-
+from io import BytesIO
+from flask import send_file
 from app.decorators import role_required
 from app.services.energy_data_service import EnergyDataService
 from app.services.energy_service import AnalysisService
@@ -114,3 +115,60 @@ def high_energy_analysis():
         avg_value=avg_value,
         high_plants=high_plants
     )
+# ===================== 月度报表即查即看 =====================
+@bp.route('/period-report')
+@role_required(['admin',  'analyst','energy_manager'])
+def period_report():
+    year = request.args.get('year', datetime.now().year, type=int)
+    period_type = request.args.get('period_type', 'month') # month 或 quarter
+    period_value = request.args.get('period_value', type=int)
+    plant_id = request.args.get('plant_id', type=int)
+    energy_type = request.args.get('energy_type', 'electric')
+
+    plants = Plant.query.all()
+    report = None
+
+    if plant_id and period_value:
+        report = AnalysisService.get_period_energy_report(
+            plant_id=plant_id,
+            energy_type=energy_type,
+            year=year,
+            period_value=period_value,
+            period_type=period_type
+        )
+        if not report:
+            flash(f'暂无该{ "月份" if period_type=="month" else "季度" }的统计数据', 'info')
+
+    return render_template(
+        'energy/period_report.html',
+        report=report,
+        plants=plants,
+        year=year,
+        period_type=period_type,
+        period_value=period_value
+    )
+
+
+@bp.route('/analysis/comprehensive')
+@role_required(['admin',  'analyst', 'enterprise_admin'])
+def comprehensive_analysis():
+    # 获取参数，默认显示 2026年 第1季度
+    year = request.args.get('year', 2026, type=int)
+    period_type = request.args.get('period_type', 'quarter')
+    period_value = request.args.get('period_value', 1, type=int)
+
+    # 获取多维聚合数据
+    chart_data, table_results = AnalysisService.get_period_comprehensive_analysis(year, period_type, period_value)
+
+    # 获取厂区列表（用于筛选下拉框）
+    plants = Plant.query.all()
+
+    return render_template('energy/comprehensive.html',
+                           chart_data=chart_data,
+                           results=table_results,
+                           year=year,
+                           period_type=period_type,
+                           period_value=period_value,
+                           plants=plants)
+
+

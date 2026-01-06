@@ -34,3 +34,5 @@ class Config:
     # [cite_start]4. 安全登录策略 [cite: 130]
     # 登录失败 5 次后锁定账号
     LOGIN_MAX_FAILURES = 5
+
+    ###

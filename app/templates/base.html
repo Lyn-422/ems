@@ -11,7 +11,6 @@
 </head>
 <body>
     <div class="d-flex">
-        {# 获取当前用户的所有角色名列表 #}
         {% set user_roles = current_user.roles|map(attribute='role_name')|list %}
 
         <div class="sidebar col-md-2 d-none d-md-block">
@@ -25,12 +24,41 @@
             <a href="{{ url_for('monitor.pv_dashboard') }}"><i class="fas fa-solar-panel me-2"></i> 光伏管理</a>
             {% endif %}
 
-            {% if 'energy_manager' in user_roles or 'admin' in user_roles %}
+            {# --- 能耗管理模块开始 --- #}
+            {# 只要包含任意一个能看能耗管理的角色，就显示大标题 #}
+            {% if 'admin' in user_roles or 'energy_manager' in user_roles or 'analyst' in user_roles or 'enterprise_admin' in user_roles %}
             <div class="text-uppercase small text-muted mt-3 px-3">能耗管理</div>
-            <a href="{{ url_for('energy.cost_report') }}"><i class="fas fa-file-invoice-dollar me-2"></i> 日能耗成本报表分析</a>
-            <a href="{{ url_for('energy.verify_energy_data') }}"><i class="fas fa-exclamation-triangle me-2"></i>待核实能耗数据</a>
-            <a href="{{ url_for('energy.high_energy_analysis') }}"><i class="fas fa-chart-bar me-2"></i>高耗能厂区分析</a>
+
+            {# 1. 仅 admin 和 energy_manager 可见的：日报表、待核实、高能耗分析 #}
+            {% if 'admin' in user_roles or 'energy_manager' in user_roles %}
+            <a href="{{ url_for('energy.cost_report') }}" class="{% if request.endpoint == 'energy.cost_report' %}active{% endif %}">
+                <i class="fas fa-file-invoice-dollar me-2"></i> 日能耗成本报表分析
+            </a>
+            <a href="{{ url_for('energy.verify_energy_data') }}" class="{% if request.endpoint == 'energy.verify_energy_data' %}active{% endif %}">
+                <i class="fas fa-exclamation-triangle me-2"></i> 待核实能耗数据
+            </a>
+            <a href="{{ url_for('energy.high_energy_analysis') }}" class="{% if request.endpoint == 'energy.high_energy_analysis' %}active{% endif %}">
+                <i class="fas fa-chart-bar me-2"></i> 高耗能厂区分析
+            </a>
             {% endif %}
+
+            {# 2. 周期报表汇总：admin, analyst, energy_manager 可看 #}
+            {% if 'admin' in user_roles or 'analyst' in user_roles or 'energy_manager' in user_roles %}
+            <a href="{{ url_for('energy.period_report') }}" class="{% if request.endpoint == 'energy.period_report' %}active{% endif %}">
+                <i class="fas fa-calendar-alt me-2"></i> 周期能耗成本汇总
+            </a>
+            {% endif %}
+
+            {# 3. 多维经营分析报告：admin, analyst, enterprise_admin 可看 #}
+            {% if 'admin' in user_roles or 'analyst' in user_roles or 'enterprise_admin' in user_roles %}
+            <a href="{{ url_for('energy.comprehensive_analysis') }}" class="{% if request.endpoint == 'energy.comprehensive_analysis' %}active{% endif %}">
+                <i class="fas fa-chart-pie me-2"></i> 多维经营分析报告
+            </a>
+            {% endif %}
+
+            {% endif %}
+            {# --- 能耗管理模块结束 --- #}
+
 
             {% if 'operator' in user_roles or 'order_manager' in user_roles or 'admin' in user_roles %}
             <div class="text-uppercase small text-muted mt-3 px-3">告警与运维</div>
@@ -47,11 +75,12 @@
 
             {% if 'admin' in user_roles %}
             <div class="text-uppercase small text-muted mt-3 px-3">系统管理</div>
-            <a href="{{ url_for('admin.user_management') }}"><i class="fas fa-users-cog me-2"></i> 用户权限管理</a>
-            <a href="{{ url_for('admin.system_monitor') }}"><i class="fas fa-server me-2"></i> 系统运行监控</a>
-            <a href="{{ url_for('admin.config_management') }}"><i class="fas fa-sliders-h me-2"></i> 告警规则配置</a>
-            <a href="{{ url_for('admin.backup_page') }}"><i class="fas fa-database me-2"></i> 数据备份与恢复</a>
+            <a href=" {{ url_for('admin.user_management') }}"><i class="fas fa-users-cog me-2"></i> 用户权限管理</a >
+            <a href="{{ url_for('admin.system_monitor') }}"><i class="fas fa-server me-2"></i> 系统运行监控</a >
+            <a href="{{ url_for('admin.config_management') }}"><i class="fas fa-sliders-h me-2"></i> 告警规则配置</a >
+            <a href="{{ url_for('admin.backup_page') }}"><i class="fas fa-database me-2"></i> 数据备份与恢复</a >
             {% endif %}
+
         </div>
 
         <div class="col-md-10 bg-light content">

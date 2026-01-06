@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <h3 class="mb-4"><i class="fas fa-database me-2"></i>数据备份与恢复</h3>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100 border-primary border-top-0 border-end-0 border-bottom-0 border-3">
+                <div class="card-body">
+                    <h4 class="card-title text-primary">数据备份 (导出)</h4>
+                    <p class="text-muted">
+                        将当前系统的核心数据（用户、设备台账、告警记录等）导出为 JSON 文件保存到本地。
+                        <br>
+                        <small class="text-danger">* 注意：为了性能，此处未包含海量历史时序监测数据。</small>
+                    </p>
+                    <div class="mt-4">
+                        <a href="{{ url_for('admin.download_backup') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-download me-2"></i> 立即下载备份文件
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100 border-danger border-top-0 border-end-0 border-bottom-0 border-3">
+                <div class="card-body">
+                    <h4 class="card-title text-danger">数据恢复 (导入)</h4>
+                    <p class="text-muted">
+                        上传之前导出的 JSON 备份文件。
+                        <br>
+                        <strong class="text-danger">警告：此操作将清空当前系统的所有现有数据并覆盖，请谨慎操作！</strong>
+                    </p>
+
+                    <form action="{{ url_for('admin.restore_backup') }}" method="post" enctype="multipart/form-data" class="mt-4">
+                        <div class="mb-3">
+                            <label for="backup_file" class="form-label">选择备份文件 (.json)</label>
+                            <input class="form-control" type="file" id="backup_file" name="backup_file" accept=".json" required>
+                        </div>
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('确定要覆盖当前数据库吗？此操作不可撤销！')">
+                            <i class="fas fa-upload me-2"></i> 开始恢复数据
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info mt-4">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>提示：</strong> 数据恢复过程可能需要几秒钟，请勿关闭页面。如恢复后页面显示异常，请尝试重新登录。
+    </div>
+</div>
+{% endblock %}

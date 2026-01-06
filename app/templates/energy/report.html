@@ -1,72 +1,111 @@
 {% extends "base.html" %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h3>日能耗成本分析报表</h3>
-    <form method="get">
-        <label for="plant_id">厂区:</label>
-        <select name="plant_id" id="plant_id">
-            {% for plant in plants %}
-                <option value="{{ plant.plant_id }}" {% if plant.plant_id == request.args.get('plant_id') %}selected{% endif %}>
-                    {{ plant.plant_name }}
-                </option>
-            {% endfor %}
-        </select>
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">
+                <i class="fas fa-file-invoice-dollar text-primary me-2"></i>日能耗成本分析
+            </h3>
+            <p class="text-muted small mb-0">穿透查询每日尖峰平谷能耗分布及财务成本</p>
+        </div>
+    </div>
 
-        <label for="date">日期:</label>
-        <input type="date" id="date" name="date" value="{{ request.args.get('date') }}">
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">来源厂区</label>
+                    <select name="plant_id" id="plant_id" class="form-select border-0 bg-light">
+                        {% for plant in plants %}
+                            <option value="{{ plant.plant_id }}" {% if plant.plant_id|string == request.args.get('plant_id') %}selected{% endif %}>
+                                {{ plant.plant_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">查询日期</label>
+                    <input type="date" id="date" name="date" class="form-control border-0 bg-light" value="{{ request.args.get('date') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">能源维度</label>
+                    <select name="energy_type" id="energy_type" class="form-select border-0 bg-light">
+                        <option value="electric" {% if request.args.get('energy_type') == 'electric' %}selected{% endif %}>⚡ 电力 (kWh)</option>
+                        <option value="water" {% if request.args.get('energy_type') == 'water' %}selected{% endif %}>💧 水 (m³)</option>
+                        <option value="gas" {% if request.args.get('energy_type') == 'gas' %}selected{% endif %}>🔥 天然气 (m³)</option>
+                        <option value="steam" {% if request.args.get('energy_type') == 'steam' %}selected{% endif %}>💨 蒸汽 (t)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm">
+                        <i class="fas fa-search me-2"></i>查询报表
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        <label for="energy_type">能源类型:</label>
-        <select name="energy_type" id="energy_type">
-            <option value="electric" {% if request.args.get('energy_type') == 'electric' %}selected{% endif %}>电力</option>
-            <option value="water" {% if request.args.get('energy_type') == 'water' %}selected{% endif %}>水</option>
-            <option value="gas" {% if request.args.get('energy_type') == 'gas' %}selected{% endif %}>天然气</option>
-            <option value="steam" {% if request.args.get('energy_type') == 'steam' %}selected{% endif %}>蒸汽</option>
-        </select>
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            {% set u_map = {'electric':'kWh', 'water':'m³', 'gas':'m³', 'steam':'t'} %}
+            {% set cur_unit = u_map.get(request.args.get('energy_type', 'electric'), 'unit') %}
 
-        <button type="submit">查询报表</button>
-    </form>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-center">
+                    <thead class="table-light">
+                        <tr class="small text-muted">
+                            <th class="ps-4">统计日期</th>
+                            <th>尖峰用量</th>
+                            <th>高峰用量</th>
+                            <th>平段用量</th>
+                            <th>低谷用量</th>
+                            <th>总能耗 ({{ cur_unit }})</th>
+                            <th>平均成本</th>
+                            <th class="pe-4 text-end">总成本 (CNY)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% if request.args.get('plant_id') and request.args.get('date') %}
+                        {% if report %}
+                        <tr>
+                            <td class="ps-4 fw-bold">{{ report.stat_date }}</td>
+
+                            <td class="text-danger">{{ report.sharp_value }}</td>
+                            <td class="text-warning text-dark">{{ report.peak_value }}</td>
+                            <td class="text-primary">{{ report.flat_value }}</td>
+                            <td class="text-success">{{ report.valley_value }}</td>
+
+                            <td class="fw-bold fs-5">
+                                {{ report.total_value }} <small class="text-muted fw-normal">{{ cur_unit }}</small>
+                            </td>
+
+                            <td class="text-muted">¥ {{ report.price_per_unit }}/{{ cur_unit }}</td>
+
+                            <td class="pe-4 text-end fw-bold text-danger fs-4">
+                                <span class="small">¥</span> {{ report.total_cost }}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="py-5 text-muted">
+                                <i class="fas fa-inbox display-4 d-block mb-3 opacity-25"></i>
+                                当前条件下暂无能耗数据
+                            </td>
+                        </tr>
+                        {% endif %}
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="py-5 text-muted">
+                            <i class="fas fa-mouse-pointer display-4 d-block mb-3 opacity-25"></i>
+                            请选择厂区、日期和能源维度查询
+                        </td>
+                    </tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
-
-<table class="table table-bordered bg-white text-center shadow-sm">
-    <thead class="table-dark">
-        <tr>
-            <th>统计日期</th>
-            <th>尖峰用量</th>
-            <th>高峰用量</th>
-            <th>平段用量</th>
-            <th>低谷用量</th>
-            <th>总能耗 </th>
-            <th>平均成本 (元)</th>
-            <th>总成本 (元)</th>
-        </tr>
-    </thead>
-<tbody>
-    {% if request.args.get('plant_id') and request.args.get('date') %}
-        {% if report %}
-        <tr>
-            <td>{{ report.stat_date }}</td>
-            <td class="text-danger">{{ report.sharp_value }}</td>
-            <td class="text-warning">{{ report.peak_value }}</td>
-            <td class="text-primary">{{ report.flat_value }}</td>
-            <td class="text-success">{{ report.valley_value }}</td>
-            <td class="fw-bold">{{ report.total_value }}</td>
-            <td>{{ report.price_per_unit }}</td>
-            <td class="fw-bold text-danger fs-5">¥ {{ report.total_cost }}</td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="8" class="text-muted py-5">
-                当前条件下暂无能耗数据
-            </td>
-        </tr>
-        {% endif %}
-    {% else %}
-    <tr>
-        <td colspan="8" class="text-muted py-5">
-            请选择厂区、日期和能源类型进行查询
-        </td>
-    </tr>
-    {% endif %}
-</tbody>
-</table>
 {% endblock %}

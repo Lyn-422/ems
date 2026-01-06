@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">
+                <i class="bi bi-calendar-range text-primary me-2"></i>周期能耗成本分析
+            </h3>
+            <p class="text-muted small mb-0">基于日统计数据自动聚合汇总，支持月度与季度维度</p>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" id="periodForm" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">厂区选择</label>
+                    <select name="plant_id" class="form-select border-0 bg-light">
+                        {% for plant in plants %}
+                            <option value="{{ plant.plant_id }}" {% if plant.plant_id|string == request.args.get('plant_id') %}selected{% endif %}>
+                                {{ plant.plant_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">能源类型</label>
+                    <select name="energy_type" id="energy_type" class="form-select border-0 bg-light">
+                        <option value="electric" {% if energy_type == 'electric' %}selected{% endif %}>⚡ 电力 (kWh)</option>
+                        <option value="water" {% if energy_type == 'water' %}selected{% endif %}>💧 水 (m³)</option>
+                        <option value="gas" {% if energy_type == 'gas' %}selected{% endif %}>🔥 天然气 (m³)</option>
+                        <option value="steam" {% if energy_type == 'steam' %}selected{% endif %}>💨 蒸汽 (t)</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">统计维度</label>
+                    <select name="period_type" id="period_type" class="form-select border-0 bg-light">
+                        <option value="month" {% if period_type == 'month' %}selected{% endif %}>📅 按月份</option>
+                        <option value="quarter" {% if period_type == 'quarter' %}selected{% endif %}>🧱 按季度</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">选择时间</label>
+                    <div class="input-group">
+                        <input type="number" name="year" class="form-control border-0 bg-light" value="{{ year or 2026 }}" placeholder="年份">
+                        <select name="period_value" id="period_value" class="form-select border-0 bg-light">
+                            </select>
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm">
+                        <i class="bi bi-search me-1"></i>查询周期报表
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            {% set u_map = {'electric':'kWh', 'water':'m³', 'gas':'m³', 'steam':'t'} %}
+            {% set cur_unit = u_map.get(request.args.get('energy_type', 'electric'), 'unit') %}
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-center">
+                    <thead class="table-light">
+                        <tr class="small text-muted">
+                            <th class="ps-4">统计周期</th>
+                            <th>尖峰总量</th>
+                            <th>高峰总量</th>
+                            <th>平段总量</th>
+                            <th>低谷总量</th>
+                            <th>累计能耗 ({{ cur_unit }})</th>
+                            <th class="pe-4 text-end">累计成本 (CNY)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% if report %}
+                        <tr class="fs-5">
+                            <td class="ps-4 fw-bold text-primary">
+                                {{ year }}年 {{ period_value }}{{ '月' if period_type == 'month' else '季度' }}
+                            </td>
+                            <td class="text-danger">{{ "%.2f"|format(report.sharp or 0) }}</td>
+                            <td class="text-warning text-dark">{{ "%.2f"|format(report.peak or 0) }}</td>
+                            <td class="text-primary">{{ "%.2f"|format(report.flat or 0) }}</td>
+                            <td class="text-success">{{ "%.2f"|format(report.valley or 0) }}</td>
+
+                            <td class="fw-bold">
+                                {{ "%.2f"|format(report.total or 0) }}
+                                <small class="text-muted fw-normal">{{ cur_unit }}</small>
+                            </td>
+
+                            <td class="pe-4 text-end fw-bold text-danger fs-4">
+                                <span class="small">¥</span> {{ "%.2f"|format(report.cost or 0) }}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="py-5 text-muted">
+                                <i class="bi bi-inbox display-4 d-block mb-3 opacity-25"></i>
+                                请选择条件并点击查询周期报表
+                            </td>
+                        </tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * 动态更新时间选择下拉框
+ */
+function updatePeriodOptions() {
+    const type = document.getElementById('period_type').value;
+    const valSelect = document.getElementById('period_value');
+    const savedVal = "{{ period_value or '' }}";
+
+    valSelect.innerHTML = '';
+    const count = type === 'month' ? 12 : 4;
+    const label = type === 'month' ? '月' : '季度';
+
+    for (let i = 1; i <= count; i++) {
+        let opt = new Option(`${i}${label}`, i);
+        if (i.toString() === savedVal) opt.selected = true;
+        valSelect.add(opt);
+    }
+}
+
+document.getElementById('period_type').addEventListener('change', updatePeriodOptions);
+document.addEventListener('DOMContentLoaded', updatePeriodOptions);
+</script>
+
+<style>
+    .table th { font-weight: 600; background-color: #f8f9fa; }
+    .text-warning { color: #ffc107 !important; }
+    .bg-light { background-color: #f8f9fa !important; }
+</style>
+{% endblock %}

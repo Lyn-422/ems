@@ -30,7 +30,7 @@
     </div>
 </div>
 
-<table class="table table-striped bg-white rounded">
+<table class="table table-striped bg-white rounded align-middle">
     <thead>
         <tr>
             <th>ID</th>
@@ -39,7 +39,7 @@
             <th>拥有角色</th>
             <th>创建时间</th>
             <th>状态</th>
-        </tr>
+            <th>操作</th> </tr>
     </thead>
     <tbody>
         {% for user in users %}
@@ -49,7 +49,9 @@
             <td>{{ user.real_name }}</td>
             <td>
                 {% for role in user.roles %}
-                <span class="badge bg-secondary">{{ role.role_name }}</span>
+                <span class="badge bg-secondary">{{ role.description }}</span>
+                {% else %}
+                <span class="text-muted small">无角色</span>
                 {% endfor %}
             </td>
             <td>{{ user.created_at }}</td>
@@ -60,7 +62,49 @@
                 <span class="badge bg-danger">禁用</span>
                 {% endif %}
             </td>
+            <td>
+                <button type="button" class="btn btn-sm btn-outline-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#roleModal-{{ user.user_id }}">
+                    <i class="fas fa-user-edit"></i> 角色
+                </button>
+            </td>
         </tr>
+
+        <div class="modal fade" id="roleModal-{{ user.user_id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form action="{{ url_for('admin.edit_user_roles', user_id=user.user_id) }}" method="POST">
+                        <div class="modal-header">
+                            <h5 class="modal-title">分配角色 - {{ user.real_name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="text-muted mb-2">请勾选该用户拥有的权限：</p>
+                            <div class="d-flex flex-wrap gap-3">
+                                {% for role in roles %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                           name="role_ids"
+                                           value="{{ role.role_id }}"
+                                           id="check-{{ user.user_id }}-{{ role.role_id }}"
+                                           {% if role in user.roles %}checked{% endif %}>
+
+                                    <label class="form-check-label" for="check-{{ user.user_id }}-{{ role.role_id }}">
+                                        {{ role.description }} ({{ role.role_name }})
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                            <button type="submit" class="btn btn-primary">保存修改</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
         {% endfor %}
     </tbody>
 </table>
